@@ -60,7 +60,7 @@ test("renders partials added at runtime", function() {
         		return this.value - (this.value * 0.4);
     		}
   		}
-	}
+	};
 	equal(ich.welcome2(view, true), 'Welcome, Joe! You just won $1000 (which is $600 after tax)');
 });
 
@@ -98,4 +98,37 @@ test("refresh should empty then grab new", function () {
     equal(ich.hasOwnProperty('flint'), false, "flint template should be gone");
 });
 
+test("renders remotely loaded files from array notation", function () {
+	expect(4);
+	stop();
+	ich.loadTemplates(
+		['external_templates/test.mustache', 'external_templates/weird-name.html'], 
+		function () {
+			start();
+			ok(typeof(ich.test) !== 'undefined', 'should load template file test.mustache');
+			ok(typeof(ich['weird-name']) !== 'undefined', 'should load template file weird-name.html');
+			equal(ich.test({"var": "blurp"}, true), '<p>The sole purpose is to demonstrate loading. If you insist i\'ll add a variable: blurp</p>', 'should have rendered differently');
+			equal(ich['weird-name']({name: 'Guy'}, true), '<p>Hello Guy, that\'s quite a weird name</p>', 'should have rendered differently');
+		}
+	);
+});
 
+test("renders remotely loaded files from object notation", function () {
+	expect(6);
+	stop();
+	ich.loadTemplates(
+		{
+			awesome: 'external_templates/test.mustache', 
+			renaming: 'external_templates/weird-name.html'
+		},
+		function () {
+			start();
+			ok(typeof(ich.awesome) !== 'undefined', 'should load template file test.mustache');
+			ok(typeof(ich.renaming) !== 'undefined', 'should load template file weird-name.html');
+			ok(typeof(ich.test) !== 'undefined', 'should not contain anything');
+			ok(typeof(ich['weird-name']) !== 'undefined', 'should not contain anything');
+			equal(ich.awesome({"var": "blurp"}, true), '<p>The sole purpose is to demonstrate loading. If you insist i\'ll add a variable: blurp</p>', 'should have rendered differently');
+			equal(ich.renaming({name: 'Guy'}, true), '<p>Hello Guy, that\'s quite a weird name</p>', 'should have rendered differently');
+		}
+	);
+});
