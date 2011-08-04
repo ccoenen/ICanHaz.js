@@ -116,6 +116,7 @@ test("renders remotely loaded files from array notation", function () {
 test("renders remotely loaded files from object notation", function () {
 	expect(6);
 	stop();
+	ich.clearAll();
 	ich.loadTemplates(
 		{
 			awesome: 'external_templates/test.mustache', 
@@ -125,8 +126,8 @@ test("renders remotely loaded files from object notation", function () {
 			start();
 			ok(typeof(ich.awesome) !== 'undefined', 'should load template file test.mustache');
 			ok(typeof(ich.renaming) !== 'undefined', 'should load template file weird-name.html');
-			ok(typeof(ich.test) !== 'undefined', 'should not contain anything');
-			ok(typeof(ich['weird-name']) !== 'undefined', 'should not contain anything');
+			ok(typeof(ich.test) === 'undefined', 'should not contain anything');
+			ok(typeof(ich['weird-name']) === 'undefined', 'should not contain anything');
 			equal(ich.awesome({"var": "blurp"}, true), '<p>The sole purpose is to demonstrate loading. If you insist i\'ll add a variable: blurp</p>', 'should have rendered differently');
 			equal(ich.renaming({name: 'Guy'}, true), '<p>Hello Guy, that\'s quite a weird name</p>', 'should have rendered differently');
 		}
