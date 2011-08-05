@@ -69,49 +69,49 @@ function ICanHaz() {
     //   'other/path/test.mustache'
     // ], callback);
     self.loadTemplates = function (templates, callback) {
-    	var loads = 0,
-    		names,
-    		title,
-    		basename = /([^\/]+)\.[^.]+$/;
+        var loads = 0,
+            names,
+            title,
+            basename = /([^\/]+)\.[^.]+$/;
 
-    	// enables String-Array-format for loading
-    	if (templates instanceof Array) {
-    		var i,
-    			l = templates.length;
+        // enables String-Array-format for loading
+        if (templates instanceof Array) {
+            var i,
+                l = templates.length;
 
-    		names = {};
-    		for (i = 0; i<l; i++) {
-    			title = templates[i].match(basename);
-    			names[title[1]] = templates[i];
-    		}
-    	} else {
-    		names = templates;
-    	}
+            names = {};
+            for (i = 0; i<l; i++) {
+                title = templates[i].match(basename);
+                names[title[1]] = templates[i];
+            }
+        } else {
+            names = templates;
+        }
 
-    	// handles loading of one url
-    	function loadNext(key, url) {
-    		$.ajax({
-    			url: url,
-    			success: function (data) {
-    				if (key[0] === '_') {
-    					ich.addPartial(key.substr(1), data);
-    				} else {
-    					ich.addTemplate(key, data);
-    				}
-    				if (--loads <= 0 && typeof(callback) === 'function') {callback();}
-    			},
-    			error: function (xhr, type) {
-    				if (--loads <= 0 && typeof(callback) === 'function') {callback();}
-    				throw 'error while loading '+url+': '+type;
-    			}
-    		});
-    	}
+        // handles loading of one url
+        function loadNext(key, url) {
+            $.ajax({
+                url: url,
+                success: function (data) {
+                    if (key[0] === '_') {
+                        ich.addPartial(key.substr(1), data);
+                    } else {
+                        ich.addTemplate(key, data);
+                    }
+                    if (--loads <= 0 && typeof(callback) === 'function') {callback();}
+                },
+                error: function (xhr, type) {
+                    if (--loads <= 0 && typeof(callback) === 'function') {callback();}
+                    throw 'error while loading '+url+': '+type;
+                }
+            });
+        }
 
-    	// kick off loading
-    	for (var key in names) {
-    		loads++;
-    		loadNext(key, names[key]);
-    	}
+        // kick off loading
+        for (var key in names) {
+            loads++;
+            loadNext(key, names[key]);
+        }
     };
 
     // clears all retrieval functions and empties caches
