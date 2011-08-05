@@ -3,37 +3,7 @@
 */
 /*global jQuery  */
 function ICanHaz() {
-    var self = this,
-        activeSequence = 0,
-        pendingRequestCounter = 0,
-        loadingCallbacks = [],
-
-        // Firing all callbacks when calling grabTemplates repeatedly.
-        // eg. pre-load templates with:
-        // $(function () {ich.grabTemplates(function () {
-        //   ... all templates are now ready for use ...
-        // });})
-        finishedLoading = function () {
-            var callbacks = loadingCallbacks;
-            loadingCallbacks = [];
-            for (var i = 0; i < callbacks.length; i++) {
-                callbacks[i]();
-            }
-        },
-
-        // check the <script> tag for type and name of the template/partial
-        // if no ("id" attribute) is found then parse it from the "src" path
-        add = function (script, text) {
-            var type = script.hasClass('partial')
-                    ? 'addPartial'
-                    : 'addTemplate',
-                name = script.attr('id')
-                    || script.attr('src')
-                        .split(/[\\\/]/).pop() // chop directory path
-                        .split(/[\.\?\#]/).shift(); // chop extension, fragment, query
-            self[type](name, text);
-        };
-
+    var self = this;
     self.VERSION = "@VERSION@";
     self.templates = {};
     self.partials = {};
@@ -44,15 +14,15 @@ function ICanHaz() {
     self.addTemplate = function (name, templateString) {
         if (self[name]) throw "Invalid name: " + name + ".";
         if (self.templates[name]) throw "Template " + name + " exists";
-        
+
         self.templates[name] = templateString;
         self[name] = function (data, raw) {
             data = data || {};
             var result = Mustache.to_html(self.templates[name], data, self.partials);
             return raw ? result : $(result);
-        };       
+        };
     };
-    
+
     // public function for adding partials
     self.addPartial = function (name, templateString) {
         if (self.partials[name]) {
@@ -61,7 +31,7 @@ function ICanHaz() {
             self.partials[name] = templateString;
         }
     };
-    
+
     // grabs templates from the DOM and caches them.
     // Takes an optional callback function as argument that fires when all
     // templates and partials have loaded (locally embedded and remote includes).
@@ -69,47 +39,28 @@ function ICanHaz() {
     // Whitespace at beginning and end of all templates inside <script> tags will 
     // be trimmed. If you want whitespace around a partial, add it in the parent, 
     // not the partial. Or do it explicitly using <br/> or &nbsp;
-    self.grabTemplates = function (callback) {        
-        var embeddedTemplates = $('script[type="text/html"]:not([src])'),
-            remoteTemplates = $('script[type="text/html"][src]'),
-            requestSequence = activeSequence;
-
-        if (callback) loadingCallbacks.push(callback);
-
-        // parse templates embedded in <script> tags 
-        embeddedTemplates.each(function (a, b) {
-            var script = $((typeof a === 'number') ? b : a),
+    self.grabTemplates = function (callback) {
+        var externalTemplates = {},
+            externalCounter = 0;
+        $('script[type="text/html"]').each(function (a, b) {
+            var script = $((typeof a === 'number') ? b : a); // Zepto doesn't bind this
+            if (!script.attr('src')) {
                 text = (''.trim) ? script.html().trim() : $.trim(script.html());
-            add(script, text);
+            } else {
+                var id = script.attr('id') || externalCounter++;
+                var src = script.attr('src');
+                externalTemplates[id] = src;
+            }
+            self[script.hasClass('partial') ? 'addPartial' : 'addTemplate'](script.attr('id'), text);
             script.remove();
         });
 
-        // fetch external templates specified via "src" attribute
-        pendingRequestCounter += remoteTemplates.length;
-        remoteTemplates.each(function (a, b) {
-            var script = $((typeof a === 'number') ? b : a);
-            script.detach();
-            $.ajax({url: script.prop('src'), dataType: 'text',
-                success: function (template) {
-                    if (requestSequence === activeSequence) {
-                        var text = (''.trim) ? template.trim() : $.trim(template);
-                        add(script, text);
-                    }
-                },
-                error: function () {
-                    throw "Failed to load remote template " + script.prop('src');
-                },
-                complete: function () {
-                    script.remove();
-                    if (requestSequence === activeSequence && --pendingRequestCounter === 0)
-                        finishedLoading();
-                }
-            });
-        });
-
-        if (pendingRequestCounter === 0) finishedLoading();
+        // load the external templates
+        if (externalTemplates != {}) {
+            self.loadTemplates(externalTemplates, callback);
+        }
     };
-    
+
     // ajax-load external template files.
     // you may specify either an array of urls (the templates
     // will be available under their basenames) or specify
@@ -133,22 +84,22 @@ function ICanHaz() {
     // ], callback);
     self.loadTemplates = function (templates, callback) {
         var loads = 0,
-            names,
-            title,
+            key,
+            src,
             basename = /([^\/]+)\.[^.]+$/;
+ 
+        for (item in templates) {
+            if (templates.hasOwnProperty(item)) {
+                if (/^\d+$/.test(item)) {
+                    key = templates[item].match(basename)[1];
+                } else {
+                    key = item;
+                }
 
-        // enables String-Array-format for loading
-        if (templates instanceof Array) {
-            var i,
-                l = templates.length;
-
-            names = {};
-            for (i = 0; i<l; i++) {
-                title = templates[i].match(basename);
-                names[title[1]] = templates[i];
+                // kick off loading for this item
+                loads++;
+                loadNext(key, templates[item]);
             }
-        } else {
-            names = templates;
         }
 
         // handles loading of one url
@@ -169,27 +120,17 @@ function ICanHaz() {
                 }
             });
         }
-
-        // kick off loading
-        for (var key in names) {
-            loads++;
-            loadNext(key, names[key]);
-        }
     };
 
     // clears all retrieval functions and empties caches
-    // resets any previous callbacks
     self.clearAll = function () {
         for (var key in self.templates) {
             delete self[key];
         }
         self.templates = {};
         self.partials = {};
-        activeSequence++;
-        pendingRequestCounter = 0;
-        loadingCallbacks = [];
     };
-    
+
     self.refresh = function (callback) {
         self.clearAll();
         self.grabTemplates(callback);

@@ -43,8 +43,18 @@ test("renders partials from &lt;script&gt; tags with class=\"partial\"", functio
         		return this.value - (this.value * 0.4);
     		}
   		}
-	}
+	};
 	equal(ich.welcome(view, true), "<p>Welcome, Joe! You just won $1000 (which is $600 after tax)</p>");
+});
+
+test("loads script-tags with sources", function () {
+	stop();
+	// out of lack for a better way to delay this, i use a timeout.
+	setTimeout(function () {
+		start();
+		ok(typeof(ich.tag_with_id) !== 'undefined', 'should load template file script_tag_reference.html and store it under the specified id without us doing anything');
+		ok(typeof(ich.script_tag_reference) !== 'undefined', 'should load template file script_tag_reference.html and store it under its basename without us doing anything');
+	}, 300);
 });
 
 test("renders partials added at runtime", function() {
