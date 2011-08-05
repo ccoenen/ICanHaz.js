@@ -51,8 +51,11 @@ function ICanHaz() {
     // you may specify either an array of urls (the templates
     // will be available under their basenames) or specify
     // an object (the templates will be available under the key-name).
+    // filenames with leading underscores will be interpreted as partial
+    // (inspired by rails' behaviour
     //
     // after successful loading, an optional callback will be called.
+    // this allows for lazy-loading of templates.
     //
     // ich.loadTemplates({
     //   start:'js/templates/start.mustache',
@@ -90,7 +93,11 @@ function ICanHaz() {
     		$.ajax({
     			url: url,
     			success: function (data) {
-    				ich.addTemplate(key, data);
+    				if (key[0] === '_') {
+    					ich.addPartial(key.substr(1), data);
+    				} else {
+    					ich.addTemplate(key, data);
+    				}
     				if (--loads <= 0 && typeof(callback) === 'function') {callback();}
     			},
     			error: function (xhr, type) {

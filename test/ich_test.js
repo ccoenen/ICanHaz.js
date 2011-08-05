@@ -133,3 +133,21 @@ test("renders remotely loaded files from object notation", function () {
 		}
 	);
 });
+
+test("loads files with leading underscore as partials", function () {
+	expect(5);
+	stop();
+	ich.clearAll();
+	ich.loadTemplates(
+		['external_templates/_some_partial.mustache', 'external_templates/no_partial.mustache'], 
+		function () {
+			start();
+			ok(typeof(ich.no_partial) !== 'undefined', 'should load template file no_partial.mustache');
+			ok(typeof(ich.some_partial) === 'undefined', 'should load template file some_partial.mustache, but not add it to the functions');
+			ok(typeof(ich._some_partial) === 'undefined', 'should load template file some_partial.mustache, but not add it to the functions, not even with leading underscore');
+			ok(typeof(ich.partials.some_partial) !== 'undefined', 'there should be a partial called "some_partial"');
+			equal(ich.no_partial({}, true), '<p>I use my partials: <em>awesome</em></p>', 'should render from the two files');
+		}
+	);
+});
+
